@@ -77,3 +77,50 @@ def generator(input, is_train, reuse = False):
         output = tf.truediv(output, 2)
 
         return output
+
+def discriminator(input, is_train, reuse=False):
+    with tf.variable_scope("dis") as scope:
+        if reuse:
+            scope.reuse_variables()
+
+        input = tf.reshape(input, shape=[-1, IMAGE_HIGHT, IMAGE_WIDTH, CHANNEL])
+
+        # Block 1
+        conv = tf.layers.conv2d(input, 64, kernel_size=[4, 4], padding="same", strides=[2, 2],
+                                        kernel_initializer=tf.glorot_uniform_initializer())
+        act = tf.nn.leaky_relu(conv, alpha=0.2)
+
+        # Block 2
+        conv = tf.layers.conv2d(act, 64, kernel_size=[4, 4], padding="same", strides=[2, 2],
+                                        kernel_initializer=tf.glorot_uniform_initializer())
+        bn = tf.layers.batch_normalization(conv, training=is_train)
+        act = tf.nn.leaky_relu(bn, alpha=0.2)
+
+        # Block 3
+        conv = tf.layers.conv2d(act, 128, kernel_size=[4, 4], padding="same", strides=[2, 2],
+                                        kernel_initializer=tf.glorot_uniform_initializer())
+        bn = tf.layers.batch_normalization(conv, training=is_train)
+        act = tf.nn.leaky_relu(bn, alpha=0.2)
+
+        # Block 4
+        conv = tf.layers.conv2d(act, 256, kernel_size=[4, 4], padding="same", strides=[2, 2],
+                                        kernel_initializer=tf.glorot_uniform_initializer())
+        bn = tf.layers.batch_normalization(conv, training=is_train)
+        act = tf.nn.leaky_relu(bn, alpha=0.2)
+
+        # Block 5
+        conv = tf.layers.conv2d(act, 512, kernel_size=[4, 4], padding="same", strides=[1, 1],
+                                        kernel_initializer=tf.glorot_uniform_initializer())
+        bn = tf.layers.batch_normalization(conv, training=is_train)
+        act = tf.nn.leaky_relu(bn, alpha=0.2)
+
+        # Block 6
+        conv = tf.layers.conv2d(act, 1, kernel_size=[4, 4], padding="same", strides=[1, 1],
+                                        kernel_initializer=tf.glorot_uniform_initializer())
+        f = tf.layers.flatten(conv)
+
+        # Block 7
+        d = tf.layers.dense(f, 1024, activation='tanh', kernel_initializer=tf.glorot_uniform_initializer())
+        output = tf.layers.dense(f, 1, activation='sigmoid', kernel_initializer=tf.glorot_uniform_initializer())
+
+    return output
