@@ -22,4 +22,5 @@ def perceptual_loss(yTar, yRes):
     return tf.reduce_mean(tf.square(loss_model(yTar) - loss_model(yRes)))
 
 def wasserstein_loss(yTar, yRes):
-    return tf.reduce_mean(tf.multiply(yTar, yRes))
+    #return tf.reduce_mean(tf.multiply(yTar, yRes))
+    return tf.abs(tf.reduce_mean(tf.multiply(yTar, yRes)))
