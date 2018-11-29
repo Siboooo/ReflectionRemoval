@@ -17,6 +17,7 @@ image_save_path = './step_result'
 gen_loss = np.zeros([EPOCH])
 dis_loss = np.zeros([EPOCH])
 
+
 #plot loss
 def plot():
     fig = plt.figure()
@@ -32,6 +33,7 @@ def plot():
     print("Loss function plotted")
     #plt.show()
     return
+
 
 def data_process():
     #print("Data process 1")
@@ -98,3 +100,20 @@ def data_process():
     real_num = len(real_images)
 
     return real_images_batch, input_images_batch, input_num, real_num
+
+
+def sample_process():
+    sample_image_content = tf.gfile.FastGFile("images/test/A/93.jpg", 'rb').read()
+    sample_image = tf.image.decode_jpeg(sample_image_content, channels = CHANNEL)
+    '''sess1 = tf.Session()
+    #print (sess1.run(sample_image))
+    print (sample_image.get_shape())
+    size = [IMAGE_HEIGHT, IMAGE_WIDTH]
+    sample_image = tf.image.resize_images(sample_image, size)
+    sample_image.set_shape([IMAGE_HEIGHT, IMAGE_WIDTH, CHANNEL])
+    print (sample_image.get_shape())'''
+    sample_image = tf.cast(sample_image, tf.float32)
+    sample_image = sample_image / 255.0
+    sample_image = tf.expand_dims(sample_image, 0)
+
+    return sample_image
