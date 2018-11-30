@@ -117,3 +117,53 @@ def sample_process():
     sample_image = tf.expand_dims(sample_image, 0)
 
     return sample_image
+
+def train():
+    #print("check point 1")
+    with tf.variable_scope("input"):
+        real_image = tf.placeholder(tf.float32, shape = [None, IMAGE_HEIGHT, IMAGE_WIDTH, CHANNEL])
+        input_image = tf.placeholder(tf.float32, shape = [None, IMAGE_HEIGHT, IMAGE_WIDTH, CHANNEL])
+        squeeze_image = tf.placeholder(tf.float32, shape = [1, IMAGE_HEIGHT, IMAGE_WIDTH, CHANNEL])
+        is_train = tf.placeholder(tf.bool)
+
+    generated_image = generator(input_image, is_train)
+
+    real_result = discriminator(real_image, is_train)
+    generated_result = discriminator(generated_image, is_train, reuse = True)
+
+    #print("check point 2")
+    d_loss = wasserstein_loss(real_result, generated_result)
+    g_loss = tf.add(tf.multiply(100.0, perceptual_loss(real_image, generated_image)),
+        tf.multiply(1.0, wasserstein_loss(real_image, generated_image)))
+
+    #print("check point 3")
+    t_vars = tf.trainable_variables()
+    d_vars = [var for var in t_vars if 'dis' in var.name]
+    g_vars = [var for var in t_vars if 'gen' in var.name]
+    trainer_d = tf.train.AdamOptimizer(learning_rate=1e-4).minimize(d_loss, var_list=d_vars)
+    trainer_g = tf.train.AdamOptimizer(learning_rate=1e-4).minimize(g_loss, var_list=g_vars)
+
+    d_clip = [v.assign(tf.clip_by_value(v, -0.01, 0.01)) for v in d_vars]
+
+    #print("check point 4")
+    real_image_batch, input_image_batch, input_num, real_number = data_process()
+    sample_data = sample_process()
+    squeezed_image = tf.squeeze(squeeze_image)
+    sample_image = tf.cast(squeezed_image, tf.float32)
+    sample_image = tf.multiply(255.0, sample_image)
+    squeezed_image2 = tf.cast(sample_image, tf.uint8)
+    encoded_image = tf.image.encode_jpeg(squeezed_image2, "rgb")
+
+    #print("check point 5")
+    batch_num = int(input_num / BATCH_SIZE)
+    total_batch = 0
+    sess = tf.Session()
+    saver = tf.train.Saver()
+
+    #print("check point 6")
+    sess.run(tf.global_variables_initializer())
+    sess.run(tf.local_variables_initializer())
+
+    #print("check point 7")
+    coord = tf.train.Coordinator()
+    threads = tf.train.start_queue_runners(sess = sess, coord = coord)
