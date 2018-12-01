@@ -167,3 +167,62 @@ def train():
     #print("check point 7")
     coord = tf.train.Coordinator()
     threads = tf.train.start_queue_runners(sess = sess, coord = coord)
+    
+    print('total training sample num: %d' % input_num)
+    print('total training traget num: %d' % real_number)
+    print('batch size: %d, batch num per epoch: %d, epoch num: %d' % (BATCH_SIZE, batch_num, EPOCH))
+    print('start training...')
+
+    #restore the variables from same version
+    '''if os.path.exists("./vars/"+version+".ckpt"):
+        print("Reload vars")
+        saver.restore(sess, "./vars/"+version+".ckpt")'''
+
+    for epoch in range(EPOCH):
+        print("==>> Running epoch [{}/{}]...".format(epoch+1, EPOCH))
+
+        for batch in range(batch_num):
+            # train descriminator
+            inputs, targets = sess.run([real_image_batch, input_image_batch])
+            for iter in range(5):
+                #inputs, targets = sess.run([real_image_batch, input_image_batch])
+                sess.run(d_clip)
+
+                _, dLoss = sess.run([trainer_d, d_loss],
+                    feed_dict={input_image: inputs, real_image: targets, is_train: True})
+
+            # train generator
+            for iter in range(1):
+                _, gLoss = sess.run([trainer_g, g_loss],
+                    feed_dict={input_image: inputs, real_image: targets, is_train: True})
+
+            print('    Batch: %d, d_loss: %f, g_loss: %f' % (batch+1, dLoss, gLoss))
+
+            dis_loss[epoch] = dLoss
+            gen_loss[epoch] = gLoss
+
+        #save variables per 100 epoch
+        if epoch%100 == 0:
+            if not os.path.exists("./vars"):
+                os.makedirs("./vars")
+            save_path = saver.save(sess, "./vars/"+version+".ckpt")
+            print("Variables saved in path: %s" % save_path)
+
+        #save result per 50 epoch
+        if epoch%50 == 0:
+            if not os.path.exists(image_save_path):
+                os.makedirs(image_save_path)
+            sample_input = sess.run(sample_data)
+            sample_result = sess.run(generated_image, feed_dict={input_image: sample_input, is_train: False})
+            sample = sess.run(encoded_image, feed_dict={squeeze_image: sample_result})
+            file = tf.write_file(image_save_path + "/" + str(epoch) + ".jpeg", sample)
+            sess.run(file)
+            print("Sample image saved!")
+
+    coord.request_stop()
+    coord.join(threads)
+
+
+if __name__ == '__main__':
+    train()
+    plot()
