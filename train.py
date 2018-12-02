@@ -31,7 +31,6 @@ def plot():
         os.makedirs("./plot")
     fig.savefig("./plot/"+version+".jpg")
     print("Loss function plotted")
-    #plt.show()
     return
 
 
@@ -56,12 +55,9 @@ def data_process():
     input_image = tf.image.decode_jpeg(input_content, channels = CHANNEL)
     #print("Data process 2.3")
     sess1 = tf.Session()
-    #print (sess1.run(input_image))
-    #print (input_image.get_shape())
     size = [IMAGE_HEIGHT, IMAGE_WIDTH]
     input_image = tf.image.resize_images(input_image, size)
     input_image.set_shape([IMAGE_HEIGHT, IMAGE_WIDTH, CHANNEL])
-    #print (input_image.get_shape())
     input_image = tf.cast(input_image, tf.float32)
     input_image = input_image / 255.0
     input_images_batch = tf.train.shuffle_batch([input_image],
@@ -84,12 +80,10 @@ def data_process():
     real_content = tf.read_file(real_images_queue[0])
     real_image = tf.image.decode_jpeg(real_content, channels = CHANNEL)
     sess1 = tf.Session()
-    #print (sess1.run(real_image))
-    #print (real_image.get_shape())
+
     size = [IMAGE_HEIGHT, IMAGE_WIDTH]
     real_image = tf.image.resize_images(real_image, size)
     real_image.set_shape([IMAGE_HEIGHT, IMAGE_WIDTH, CHANNEL])
-    #print (real_image.get_shape())
     real_image = tf.cast(real_image, tf.float32)
     real_image = real_image / 255.0
     real_images_batch = tf.train.shuffle_batch([real_image],
@@ -167,7 +161,7 @@ def train():
     #print("check point 7")
     coord = tf.train.Coordinator()
     threads = tf.train.start_queue_runners(sess = sess, coord = coord)
-    
+
     print('total training sample num: %d' % input_num)
     print('total training traget num: %d' % real_number)
     print('batch size: %d, batch num per epoch: %d, epoch num: %d' % (BATCH_SIZE, batch_num, EPOCH))
@@ -185,7 +179,6 @@ def train():
             # train descriminator
             inputs, targets = sess.run([real_image_batch, input_image_batch])
             for iter in range(5):
-                #inputs, targets = sess.run([real_image_batch, input_image_batch])
                 sess.run(d_clip)
 
                 _, dLoss = sess.run([trainer_d, d_loss],
