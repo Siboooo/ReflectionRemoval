@@ -168,9 +168,9 @@ def train():
     print('start training...')
 
     #restore the variables from same version
-    '''if os.path.exists("./vars/"+version+".ckpt"):
+    if os.path.exists("./vars/"+version+".ckpt"):
         print("Reload vars")
-        saver.restore(sess, "./vars/"+version+".ckpt")'''
+        saver.restore(sess, "./vars/"+version+".ckpt")
 
     for epoch in range(EPOCH):
         print("==>> Running epoch [{}/{}]...".format(epoch+1, EPOCH))
