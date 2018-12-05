@@ -16,7 +16,6 @@ def generator(input, is_train, reuse = False):
         input = tf.reshape(input, shape=[IMAGE_HIGHT, IMAGE_WIDTH, CHANNEL])
 
         # Block 1
-        # ReflectionPadding2D((3, 3))(inputs)
         p = tf.pad(input, ([3, 3], [3, 3]), "reflect")
         conv = tf.layers.conv2d(p, 64, kernel_size=[7, 7], padding="valid", strides=[1, 1],
                                         kernel_initializer=tf.glorot_uniform_initializer())
@@ -46,7 +45,6 @@ def generator(input, is_train, reuse = False):
             bn = tf.layers.batch_normalization(conv, training=is_train)
             act = tf.nn.relu(bn)
             dropout = tf.layer.dropout(act, training=is_train)
-            # ReflectionPadding2D(1, 1)(x)
             p = tf.pad(dropout, ([1, 1], [1, 1]), "reflect")
             conv = tf.layers.conv2d(p, 256, kernel_size=[3, 3], padding="valid", strides=[1, 1],
                                             kernel_initializer=tf.glorot_uniform_initializer())
@@ -66,15 +64,10 @@ def generator(input, is_train, reuse = False):
         act = tf.nn.relu(bn)
 
         # Block 15
-        # ReflectionPadding2D((3, 3))(inputs)
         p = tf.pad(act, ([3, 3], [3, 3]), "reflect")
         conv = tf.layers.conv2d(p, 3, kernel_size=[7, 7], padding="valid", strides=[1, 1],
                                         kernel_initializer=tf.glorot_uniform_initializer())
         output = tf.nn.tanh(conv)
-
-        # might cause the unsatisfied result
-        output = tf.add(output, input)
-        output = tf.truediv(output, 2)
 
         return output
 
