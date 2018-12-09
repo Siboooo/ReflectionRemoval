@@ -10,8 +10,8 @@ from loss import *
 IMAGE_HEIGHT = 400
 IMAGE_WIDTH = 540
 CHANNEL = 3
-EPOCH = 2
-BATCH_SIZE = 1
+EPOCH = 2000
+BATCH_SIZE = 64
 version = 'version' #structure
 image_save_path = './step_result'
 gen_loss = np.zeros([EPOCH])
