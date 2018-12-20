@@ -200,7 +200,6 @@ def train2():
     with tf.variable_scope("input"):
         real_image = tf.placeholder(tf.float32, shape = [None, IMAGE_HEIGHT, IMAGE_WIDTH, CHANNEL])
         input_image = tf.placeholder(tf.float32, shape = [None, IMAGE_HEIGHT, IMAGE_WIDTH, CHANNEL])
-        squeeze_image = tf.placeholder(tf.float32, shape = [1, IMAGE_HEIGHT, IMAGE_WIDTH, CHANNEL])
         target_result = tf.placeholder(tf.float32, shape = [BATCH_SIZE, 1])
         g_is_train = tf.placeholder(tf.bool)
         d_is_train = tf.placeholder(tf.bool)
@@ -225,6 +224,7 @@ def train2():
     data = load_images()
     x_train = data['A']
     y_train = data['B']
+    sample = date['Sample']
     print("number of images: {}\nimages size and chaneel: {}\n".format(
         x_train.shape[0], x_train.shape[1:]))
 
@@ -234,11 +234,9 @@ def train2():
     sess = tf.Session()
     saver = tf.train.Saver()
 
-    #print("check point 6")
     sess.run(tf.global_variables_initializer())
     sess.run(tf.local_variables_initializer())
 
-    #print("check point 7")
     coord = tf.train.Coordinator()
     threads = tf.train.start_queue_runners(sess = sess, coord = coord)
 
@@ -249,8 +247,7 @@ def train2():
         permutated_indexes = np.random.permutation(x_train.shape[0])
 
         for batch in range(x_train.shape[0]/BATCH_SIZE):
-            batch_indexes = permutated_indexes[index *
-                                               batch_size:(index+1)*batch_size]
+            batch_indexes = permutated_indexes[index * batch_size:(index+1)*batch_size]
             x_batch = x_train[batch_indexes]
             y_batch = y_train[batch_indexes]
 
@@ -266,26 +263,28 @@ def train2():
 
             for iter in range(1):
                 _, gLoss = sess.run([trainer_g, g_loss],
-                    feed_dict={input_image: x_batch, real_image: y_batch, is_train: True})
+                    feed_dict={input_image: x_batch, real_image: y_batch, g_is_train: True})
                 gen_loss.append(gLoss)
 
             print('    Batch: %d, d_loss: %f, g_loss: %f' % (batch+1, dLoss, gLoss))
 
+        '''
         #save variables per 100 epoch
         if epoch%100 == 0:
             if not os.path.exists("./vars"):
                 os.makedirs("./vars")
             save_path = saver.save(sess, "./vars/"+version+".ckpt")
             print("Variables saved in path: %s" % save_path)
+        '''
 
         #save result per 50 epoch
         if epoch%50 == 0:
             if not os.path.exists(image_save_path):
                 os.makedirs(image_save_path)
-            sample_input = sess.run(sample_data)
-            sample_result = sess.run(generated_image, feed_dict={input_image: sample_input, is_train: False})
-            sample = sess.run(encoded_image, feed_dict={squeeze_image: sample_result})
-            file = tf.write_file(image_save_path + "/" + str(epoch) + ".jpeg", sample)
+
+            sample_result = sess.run(generated_image, feed_dict={input_image: sample, g_is_train: False})
+            sample_result = sample_result * 127.5 + 127.5
+            file = tf.write_file(image_save_path + "/" + str(epoch) + ".jpeg", sample_result.astype('uint8'))
             sess.run(file)
             print("Sample image saved!")
 
