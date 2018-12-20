@@ -212,13 +212,15 @@ def train2():
 
     d_loss1 = wasserstein_loss(target_result, dis_result)
     d_loss2 = wasserstein_loss(target_result, generated_result)
+
     g_loss = tf.add(tf.multiply(100.0, perceptual_loss(real_image, generated_image)),
         tf.multiply(1.0, wasserstein_loss(real_image, generated_image)))
 
     t_vars = tf.trainable_variables()
     d_vars = [var for var in t_vars if 'dis' in var.name]
     g_vars = [var for var in t_vars if 'gen' in var.name]
-    trainer_d = tf.train.AdamOptimizer(learning_rate=1e-4).minimize(d_loss, var_list=d_vars)
+    trainer_d1 = tf.train.AdamOptimizer(learning_rate=1e-4).minimize(d_loss1, var_list=d_vars)
+    trainer_d2 = tf.train.AdamOptimizer(learning_rate=1e-4).minimize(d_loss2, var_list=d_vars)
     trainer_g = tf.train.AdamOptimizer(learning_rate=1e-4).minimize(g_loss, var_list=g_vars)
 
     data = load_images()
@@ -252,10 +254,10 @@ def train2():
             y_batch = y_train[batch_indexes]
 
             for iter in range(5):
-                _, dLoss1 = sess.run([trainer_d, d_loss1],
+                _, dLoss1 = sess.run([trainer_d1, d_loss1],
                     feed_dict={input_image: y_batch, target_result: output_true_batch, d_is_train: True})
 
-                _, dLoss2 = sess.run([trainer_d, d_loss2],
+                _, dLoss2 = sess.run([trainer_d2, d_loss2],
                     feed_dict={input_image: x_batch, target_result: output_false_batch, d_is_train: True, g_is_train: False})
 
                 dLoss = 0.5 * np.add(dLoss1, dLoss2)
