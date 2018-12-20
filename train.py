@@ -226,12 +226,12 @@ def train2():
     data = load_images()
     x_train = data['A']
     y_train = data['B']
-    sample = date['Sample']
+    sample = data['Sample']
     print("number of images: {}\nimages size and chaneel: {}\n".format(
         x_train.shape[0], x_train.shape[1:]))
 
-    output_true_batch = np.ones((batch_size, 1))
-    output_false_batch = np.zeros((batch_size, 1))
+    output_true_batch = np.ones((BATCH_SIZE, 1))
+    output_false_batch = np.zeros((BATCH_SIZE, 1))
 
     sess = tf.Session()
     saver = tf.train.Saver()
