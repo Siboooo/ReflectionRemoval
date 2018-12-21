@@ -200,27 +200,27 @@ def train2():
     with tf.variable_scope("input"):
         real_image = tf.placeholder(tf.float32, shape = [None, IMAGE_HEIGHT, IMAGE_WIDTH, CHANNEL])
         input_image = tf.placeholder(tf.float32, shape = [None, IMAGE_HEIGHT, IMAGE_WIDTH, CHANNEL])
+        dis_input_image = tf.placeholder(tf.float32, shape = [None, IMAGE_HEIGHT, IMAGE_WIDTH, CHANNEL])
         target_result = tf.placeholder(tf.float32, shape = [BATCH_SIZE, 1])
         g_is_train = tf.placeholder(tf.bool)
         d_is_train = tf.placeholder(tf.bool)
 
     generated_image = generator(input_image, g_is_train)
 
-    dis_result = discriminator(input_image, d_is_train)
+    dis_result = discriminator(dis_input_image, d_is_train)
     #generated_result = discriminator(generated_image, d_is_train, reuse = True)
-    generated_result = discriminator(generated_image, d_is_train)
 
-    d_loss1 = wasserstein_loss(target_result, dis_result)
-    d_loss2 = wasserstein_loss(target_result, generated_result)
+    d_loss = wasserstein_loss(target_result, dis_result)
 
     g_loss = tf.add(tf.multiply(100.0, perceptual_loss(real_image, generated_image)),
         tf.multiply(1.0, wasserstein_loss(real_image, generated_image)))
 
     t_vars = tf.trainable_variables()
-    d_vars = [var for var in t_vars if 'dis' in var.name]
-    g_vars = [var for var in t_vars if 'gen' in var.name]
-    trainer_d1 = tf.train.AdamOptimizer(learning_rate=1e-4).minimize(d_loss1, var_list=d_vars)
-    trainer_d2 = tf.train.AdamOptimizer(learning_rate=1e-4).minimize(d_loss2, var_list=d_vars)
+    d_vars = tf.get_collection(tf.Graph.GLOBAL_VARIABLES, scope="dis")
+    g_vars = tf.get_collection(tf.Graph.GLOBAL_VARIABLES, scope="gen")
+    #d_vars = [var for var in t_vars if 'dis' in var.name]
+    #g_vars = [var for var in t_vars if 'gen' in var.name]
+    trainer_d1 = tf.train.AdamOptimizer(learning_rate=1e-4).minimize(d_loss, var_list=d_vars)
     trainer_g = tf.train.AdamOptimizer(learning_rate=1e-4).minimize(g_loss, var_list=g_vars)
 
     data = load_images()
@@ -233,7 +233,9 @@ def train2():
     output_true_batch = np.ones((BATCH_SIZE, 1))
     output_false_batch = np.zeros((BATCH_SIZE, 1))
 
-    sess = tf.Session()
+    config = tf.ConfigProto()
+    config.gpu_options.allow_growth = True
+    sess = tf.Session(config = config)
     saver = tf.train.Saver()
 
     sess.run(tf.global_variables_initializer())
@@ -248,17 +250,19 @@ def train2():
         print("==>> Running epoch [{}/{}]...".format(epoch+1, EPOCH))
         permutated_indexes = np.random.permutation(x_train.shape[0])
 
-        for batch in range(x_train.shape[0]/BATCH_SIZE):
-            batch_indexes = permutated_indexes[index * batch_size:(index+1)*batch_size]
+        for batch in range(int(x_train.shape[0]/BATCH_SIZE)):
+            batch_indexes = permutated_indexes[batch * BATCH_SIZE:(batch+1)*BATCH_SIZE]
             x_batch = x_train[batch_indexes]
             y_batch = y_train[batch_indexes]
 
             for iter in range(5):
-                _, dLoss1 = sess.run([trainer_d1, d_loss1],
-                    feed_dict={input_image: y_batch, target_result: output_true_batch, d_is_train: True})
+                _, dLoss1 = sess.run([trainer_d, d_loss],
+                    feed_dict={dis_input_image: y_batch, target_result: output_true_batch, d_is_train: True})
 
-                _, dLoss2 = sess.run([trainer_d2, d_loss2],
-                    feed_dict={input_image: x_batch, target_result: output_false_batch, d_is_train: True, g_is_train: False})
+                gen_image = sess.run(generated_image, feed_dict={input_image: x_batch, g_is_train = False})
+
+                _, dLoss2 = sess.run([trainer_d, d_loss],
+                    feed_dict={dis_input_image: gen_image, target_result: output_false_batch, d_is_train: True})
 
                 dLoss = 0.5 * np.add(dLoss1, dLoss2)
                 dis_loss.append(dLoss)
