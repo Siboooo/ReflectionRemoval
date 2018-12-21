@@ -294,6 +294,43 @@ def train2():
     coord.join(threads)
 
 def load_images():
+    current_dir = os.getcwd()
+    input_dir = os.path.join(current_dir, 'images/train/A')
+    real_dir = os.path.join(current_dir, 'images/train/B')
+
+    A_images = []
+    for each in os.listdir(input_dir):
+        if each == ".DS_Store":
+            continue
+        img = Image.open(input_dir + '/' + each)
+        resizedImg = img.resize([IMAGE_WIDTH, IMAGE_HEIGHT])
+        imgArray = np.array(resizedImg)
+        imgArray = (imgArray - 127.5) / 127.5
+        A_images.append(imgArray)
+
+    B_images = []
+    for each in os.listdir(real_dir):
+        if each == ".DS_Store":
+            continue
+        img = Image.open(real_dir + '/' + each)
+        resizedImg = img.resize([IMAGE_HEIGHT, IMAGE_WIDTH])
+        imgArray = np.array(resizedImg)
+        imgArray = (imgArray - 127.5) / 127.5
+        B_images.append(imgArray)
+
+    S_images = []
+    img = Image.open("images/test/A/93.jpg")
+    resizedImg = img.resize(RESHAPE)
+    imgArray = np.array(resizedImg)
+    imgArray = (imgArray - 127.5) / 127.5
+    S_images.append(imgArray)
+
+
+    return{
+        'A': np.array(A_images),
+        'B': np.array(B_images),
+        'Sample': np.array(S_images)
+    }
 
 
 
