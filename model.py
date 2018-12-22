@@ -69,7 +69,7 @@ def generator(input, is_train, reuse = False):
                                         kernel_initializer=tf.glorot_uniform_initializer())
         output = tf.nn.tanh(conv)
 
-        return output
+    return output
 
 def discriminator(input, is_train, reuse=False):
     with tf.variable_scope("dis") as scope:
