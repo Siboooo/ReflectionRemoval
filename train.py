@@ -324,7 +324,10 @@ def load_images():
     real_dir = os.path.join(current_dir, 'images/train/B')
 
     A_images = []
+    index = 0
     for each in os.listdir(input_dir):
+        if index >= TRAIN_IMAGES:
+            break
         if each == ".DS_Store":
             continue
         img = Image.open(input_dir + '/' + each)
@@ -332,21 +335,30 @@ def load_images():
         imgArray = np.array(resizedImg)
         imgArray = (imgArray - 127.5) / 127.5
         A_images.append(imgArray)
+        index += 1
 
     B_images = []
+    index = 0
     for each in os.listdir(real_dir):
+        if index >= TRAIN_IMAGES:
+            break
         if each == ".DS_Store":
             continue
         img = Image.open(real_dir + '/' + each)
-        resizedImg = img.resize([IMAGE_HEIGHT, IMAGE_WIDTH])
+        resizedImg = img.resize([IMAGE_WIDTH, IMAGE_HEIGHT])
         imgArray = np.array(resizedImg)
         imgArray = (imgArray - 127.5) / 127.5
         B_images.append(imgArray)
+        index += 1
 
     S_images = []
     img = Image.open("images/test/A/93.jpg")
-    resizedImg = img.resize(RESHAPE)
+    resizedImg = img.resize([IMAGE_WIDTH, IMAGE_HEIGHT])
     imgArray = np.array(resizedImg)
+
+    sampleImg2 = imgArray.astype('uint8')
+    imwrite(image_save_path + "/sample0.jpeg", sampleImg2)
+
     imgArray = (imgArray - 127.5) / 127.5
     S_images.append(imgArray)
 
