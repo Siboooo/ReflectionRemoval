@@ -1,4 +1,5 @@
 import tensorflow as tf
+import keras.backend as K
 from keras.applications.vgg16 import VGG16
 from keras.models import Model
 
@@ -21,3 +22,15 @@ def perceptual_loss(yTar, yRes):
 
 def wasserstein_loss(yTar, yRes):
     return tf.abs(tf.reduce_mean(tf.multiply(yTar, yRes)))
+
+def perceptual_loss2(y_true, y_pred):
+    vgg = VGG16(include_top=False, weights='imagenet', input_shape=image_shape)
+    loss_model = Model(
+        inputs=vgg.input, outputs=vgg.get_layer('block3_conv3').output)
+    loss_model.trainable = False
+    return K.mean(K.square(loss_model(y_true) - loss_model(y_pred)))
+
+
+def wasserstein_loss2(y_true, y_pred):
+
+    return K.mean(y_true - y_pred)
