@@ -34,3 +34,9 @@ def perceptual_loss2(y_true, y_pred):
 def wasserstein_loss2(y_true, y_pred):
 
     return K.mean(y_true - y_pred)
+
+def discriminator_loss(real_output, generated_output):
+    real_loss = tf.losses.sigmoid_cross_entropy(multi_class_labels=tf.ones_like(real_output), logits=real_output)
+    generated_loss = tf.losses.sigmoid_cross_entropy(multi_class_labels=tf.zeros_like(generated_output), logits=generated_output)
+    total_loss = real_loss + generated_loss
+    return total_loss
