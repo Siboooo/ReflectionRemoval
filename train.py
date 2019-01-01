@@ -200,35 +200,30 @@ def train():
 
 def train2():
 
-    '''
     with tf.variable_scope("input"):
         real_image = tf.placeholder(tf.float32, shape = [None, IMAGE_HEIGHT, IMAGE_WIDTH, CHANNEL])
         input_image = tf.placeholder(tf.float32, shape = [None, IMAGE_HEIGHT, IMAGE_WIDTH, CHANNEL])
-        dis_input_image = tf.placeholder(tf.float32, shape = [None, IMAGE_HEIGHT, IMAGE_WIDTH, CHANNEL])
-        target_result = tf.placeholder(tf.float32, shape = [BATCH_SIZE, 1])
+        #dis_input_image = tf.placeholder(tf.float32, shape = [None, IMAGE_HEIGHT, IMAGE_WIDTH, CHANNEL])
+        #target_result = tf.placeholder(tf.float32, shape = [BATCH_SIZE, 1])
         g_is_train = tf.placeholder(tf.bool)
         d_is_train = tf.placeholder(tf.bool)
-    '''
-
-    real_image = tf.placeholder(tf.float32, shape = [None, IMAGE_HEIGHT, IMAGE_WIDTH, CHANNEL])
-    input_image = tf.placeholder(tf.float32, shape = [None, IMAGE_HEIGHT, IMAGE_WIDTH, CHANNEL])
-    dis_input_image = tf.placeholder(tf.float32, shape = [None, IMAGE_HEIGHT, IMAGE_WIDTH, CHANNEL])
-    target_result = tf.placeholder(tf.float32, shape = [BATCH_SIZE, 1])
-    g_is_train = tf.placeholder(tf.bool)
-    d_is_train = tf.placeholder(tf.bool)
 
     generated_image = generator(input_image, g_is_train)
 
-    dis_result = discriminator(dis_input_image, d_is_train)
+    dis_result = discriminator(generated_image, d_is_train)
+    real_result = discriminator(real_image, d_is_train)
     #generated_result = discriminator(generated_image, d_is_train, reuse = True)
 
-    d_loss = wasserstein_loss(target_result, dis_result)
-    g_loss = tf.add(tf.multiply(100.0, perceptual_loss(real_image, generated_image)),
-        tf.multiply(1.0, wasserstein_loss(real_image, generated_image)))
+    #d_loss = wasserstein_loss(target_result, dis_result)
+    d_loss = descriminator_loss(real_result, dis_result)
+
+    #g_loss = tf.add(tf.multiply(100.0, perceptual_loss(real_image, generated_image)),
+    #    tf.multiply(1.0, wasserstein_loss(real_image, generated_image)))
+    g_loss = perceptual_loss(real_image, generated_image)
 
     t_vars = tf.trainable_variables()
-    d_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope="dis")
-    g_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope="gen")
+    d_vars = tf.get_collection(tf.Graph.GLOBAL_VARIABLES, scope="dis")
+    g_vars = tf.get_collection(tf.Graph.GLOBAL_VARIABLES, scope="gen")
     #d_vars = [var for var in t_vars if 'dis' in var.name]
     #g_vars = [var for var in t_vars if 'gen' in var.name]
     trainer_d = tf.train.AdamOptimizer(learning_rate=1e-4).minimize(d_loss, var_list=d_vars)
@@ -238,10 +233,6 @@ def train2():
     x_train = data['A']
     y_train = data['B']
     sample = data['Sample']
-    sample_result3 = sample[0] * 127.5 + 127.5
-    sampleImg3 = sample_result3.astype('uint8')
-    print(sampleImg3)
-    imwrite(image_save_path + "/sample1.jpeg", sampleImg3)
     print("number of images: {}\nimages size and chaneel: {}\n".format(
         x_train.shape[0], x_train.shape[1:]))
 
@@ -251,7 +242,6 @@ def train2():
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
     sess = tf.Session(config = config)
-    #sess = tf.Session()
     saver = tf.train.Saver()
 
     sess.run(tf.global_variables_initializer())
@@ -271,17 +261,19 @@ def train2():
             x_batch = x_train[batch_indexes]
             y_batch = y_train[batch_indexes]
 
-            for iter in range(5):
-                _, dLoss1 = sess.run([trainer_d, d_loss],
+            for iter in range(1):
+
+                '''_, dLoss1 = sess.run([trainer_d, d_loss],
                     feed_dict={dis_input_image: y_batch, target_result: output_true_batch, d_is_train: True})
 
-                gen_image = sess.run(generated_image, feed_dict={input_image: x_batch, g_is_train: False})
+                gen_image = sess.run(generated_image, feed_dict={input_image: x_batch, g_is_train = False})
 
                 _, dLoss2 = sess.run([trainer_d, d_loss],
                     feed_dict={dis_input_image: gen_image, target_result: output_false_batch, d_is_train: True})
-
-                dLoss = 0.5 * np.add(dLoss1, dLoss2)
-                dis_loss.append(dLoss)
+                '''
+                _, dLoss = sess.run([trainer_d, d_loss],
+                    feed_dict={input_image: x_batch, real_image: y_batch, d_is_train: True})
+                des_loss.append(dLoss)
 
             for iter in range(1):
                 _, gLoss = sess.run([trainer_g, g_loss],
@@ -300,20 +292,15 @@ def train2():
         '''
 
         #save result per 50 epoch
-        if epoch%1 == 0:
+        if epoch%50 == 0:
             if not os.path.exists(image_save_path):
                 os.makedirs(image_save_path)
 
             sample_result = sess.run(generated_image, feed_dict={input_image: sample, g_is_train: False})
-            sample_result = sample_result[0] * 127.5 + 127.5
-            sampleImg = sample_result.astype('uint8')
-            imwrite(image_save_path + "/" + str(epoch) + ".jpeg", sampleImg)
-
-            #sampleImg = Image.fromarray(sample_result)
-            #im.save(image_save_path + "/" + str(epoch) + ".jpeg")
-            #file = tf.write_file(image_save_path + "/" + str(epoch) + ".jpeg", sample_result.astype('uint8'))
-            #sess.run(file)
-            print("    Sample image saved!")
+            sample_result = sample_result * 127.5 + 127.5
+            file = tf.write_file(image_save_path + "/" + str(epoch) + ".jpeg", sample_result.astype('uint8'))
+            sess.run(file)
+            print("Sample image saved!")
 
     coord.request_stop()
     coord.join(threads)
