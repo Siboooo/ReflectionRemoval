@@ -16,7 +16,7 @@ IMAGE_WIDTH = 540
 CHANNEL = 3
 EPOCH = 1000
 BATCH_SIZE = 4
-TRAIN_IMAGES = 400
+TRAIN_IMAGES = 100
 version = 'version' #structure
 image_save_path = './step_result'
 gen_loss = []
@@ -31,9 +31,10 @@ def plot():
     plt.legend(loc=0, ncol=1)
     plt.xlabel("Epoch")
     plt.ylabel("Loss")
-    if not os.path.exists("./plot"):
+    '''if not os.path.exists("./plot"):
         os.makedirs("./plot")
-    fig.savefig("./plot/"+version+".jpg")
+    '''
+    fig.savefig(version+".jpg")
     print("Loss function plotted")
     #plt.show()
     return
@@ -41,46 +42,27 @@ def plot():
 
 def train2():
 
-    '''
-    with tf.variable_scope("input"):
-        real_image = tf.placeholder(tf.float32, shape = [None, IMAGE_HEIGHT, IMAGE_WIDTH, CHANNEL])
-        input_image = tf.placeholder(tf.float32, shape = [None, IMAGE_HEIGHT, IMAGE_WIDTH, CHANNEL])
-        dis_input_image = tf.placeholder(tf.float32, shape = [None, IMAGE_HEIGHT, IMAGE_WIDTH, CHANNEL])
-        target_result = tf.placeholder(tf.float32, shape = [BATCH_SIZE, 1])
-        g_is_train = tf.placeholder(tf.bool)
-        d_is_train = tf.placeholder(tf.bool)
-    '''
-
-    #'''
     real_image = tf.placeholder(tf.float32, shape = [None, IMAGE_HEIGHT, IMAGE_WIDTH, CHANNEL])
     input_image = tf.placeholder(tf.float32, shape = [None, IMAGE_HEIGHT, IMAGE_WIDTH, CHANNEL])
     dis_input_image = tf.placeholder(tf.float32, shape = [None, IMAGE_HEIGHT, IMAGE_WIDTH, CHANNEL])
+    dis_input = tf.placeholder(tf.float32, shape = [BATCH_SIZE, 1])
     target_result = tf.placeholder(tf.float32, shape = [BATCH_SIZE, 1])
     g_is_train = tf.placeholder(tf.bool)
     d_is_train = tf.placeholder(tf.bool)
-    #'''
 
     generated_image = generator(input_image, g_is_train)
 
     dis_result = discriminator(dis_input_image, d_is_train)
-    real_result = discriminator(real_image, d_is_train, reuse = True)
-    #dis_result = discriminator(dis_input_image, d_is_train)
-    #generated_result = discriminator(generated_image, d_is_train, reuse = True)
 
-    #d_loss = wasserstein_loss(target_result, dis_result)
-    #d_loss = discriminator_loss(real_result, dis_result)
-    d_loss = dice_coefficient(target_result, dis_result)
+    d_loss = singleDisLoss(target_result, dis_result)
 
-    g_loss = perceptual_loss(real_image, generated_image)
-    #g_loss = tf.add(tf.multiply(1000.0, pLoss), tf.multiply(1.0, wasserstein_loss(real_image, generated_image)))
-    #g_loss = tf.add(tf.multiply(100.0, perceptual_loss(real_image, generated_image)),
-    #    tf.multiply(1.0, wasserstein_loss(real_image, generated_image)))
+    component_loss1 = perceptual_loss(real_image, generated_image)
+    component_loss2 = MSE(real_image, generated_image)
+    component_loss3 = singleDisLoss(target_result, dis_input)
+    g_loss = 1 * component_loss1 + 1 * component_loss2 + 1 * component_loss3
 
-    #t_vars = tf.trainable_variables()
     d_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope="dis")
     g_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope="gen")
-    #d_vars = [var for var in t_vars if 'dis' in var.name]
-    #g_vars = [var for var in t_vars if 'gen' in var.name]
     trainer_d = tf.train.AdamOptimizer(learning_rate=1e-4).minimize(d_loss, var_list=d_vars)
     trainer_g = tf.train.AdamOptimizer(learning_rate=1e-4).minimize(g_loss, var_list=g_vars)
 
@@ -88,8 +70,8 @@ def train2():
     x_train = data['A']
     y_train = data['B']
     sample = data['Sample']
-    sample_result3 = sample[0] * 127.5 + 127.5
-    sampleImg3 = sample_result3.astype('uint8')
+    sample_result3 = sample * 127.5 + 127.5
+    sampleImg3 = sample_result3[0].astype('uint8')
     imwrite(image_save_path + "/sample1.jpeg", sampleImg3)
     print("number of images: {}\nimages size and chaneel: {}\n".format(
         x_train.shape[0], x_train.shape[1:]))
@@ -100,7 +82,6 @@ def train2():
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
     sess = tf.Session(config = config)
-    #sess = tf.Session()
     saver = tf.train.Saver()
 
     sess.run(tf.global_variables_initializer())
@@ -120,76 +101,33 @@ def train2():
             batch_indexes = permutated_indexes[batch * BATCH_SIZE:(batch+1)*BATCH_SIZE]
             x_batch = x_train[batch_indexes]
             y_batch = y_train[batch_indexes]
+            dl1 = 0
+            dl2 = 0
+            for iter in range(5):
+                gen_image = sess.run(generated_image, feed_dict={input_image: x_batch, g_is_train: True})
+
+                _, dLoss2, result = sess.run([trainer_d, d_loss, dis_result],
+                    feed_dict={dis_input_image: gen_image, target_result: output_false_batch, d_is_train: True})
+                dl2 = dl2 + dLoss2
 
             for iter in range(5):
-
-                gen_image = sess.run(generated_image, feed_dict={input_image: x_batch, g_is_train: False})
-
-                _, dLoss2 = sess.run([trainer_d, d_loss],
-                    feed_dict={dis_input_image: gen_image, target_result: output_false_batch, d_is_train: True})
-
-                '''
-                disResult2 = sess.run(dis_result, feed_dict={dis_input_image: x_batch, d_is_train: False})
-                print(disResult2)
-                print(output_false_batch)
-                print("falseResult: "+str(output_false_batch - disResult2))
-                print(sess.run(wasserstein_loss(output_false_batch, disResult2)))
-                print(sess.run(d_loss, feed_dict={dis_input_image: gen_image, target_result: output_false_batch, d_is_train: False}))
-                print("dLoss2: "+str(dLoss2))
-                print(" ")
-                '''
-
-                dLoss1 = 0
-                #_, dLoss1 = sess.run([trainer_d, d_loss],
-                #    feed_dict={dis_input_image: y_batch, target_result: output_true_batch, d_is_train: True})
-
-                '''disResult = sess.run(dis_result, feed_dict={dis_input_image: y_batch, d_is_train: False})
-                print(disResult)
-                print(output_true_batch)
-                print("trueResult: "+str(output_true_batch - disResult))
-                print(sess.run(d_loss, feed_dict={dis_input_image: y_batch, target_result: output_true_batch, d_is_train: False}))
-                print("dLoss1: "+str(dLoss1))
-                print(" ")
-                '''
-                '''
                 _, dLoss1 = sess.run([trainer_d, d_loss],
-                    feed_dict={dis_input_image: y_batch, target_result: output_true_batch, d_is_train: False})
+                    feed_dict={dis_input_image: y_batch, target_result: output_true_batch, d_is_train: True})
+                dl1 = dl1 + dLoss1
 
-                disResult = sess.run(dis_result, feed_dict={dis_input_image: y_batch, d_is_train: False})
-                print(disResult)
-                print(output_true_batch)
-                print("result: "+str(output_true_batch - disResult))
-
-                gen_image = sess.run(generated_image, feed_dict={input_image: x_batch, g_is_train: False})
-
-                _, dLoss2 = sess.run([trainer_d, d_loss],
-                    feed_dict={dis_input_image: gen_image, target_result: output_false_batch, d_is_train: False})
-
-                disResult2 = sess.run(dis_result, feed_dict={dis_input_image: x_batch, d_is_train: False})
-                print(disResult2)
-                print(output_false_batch)
-                print("result: "+str(output_false_batch - disResult2))
-                '''
-
-                '''_, dLoss = sess.run([trainer_d, d_loss],
-                    feed_dict={input_image: x_batch, real_image: y_batch, d_is_train: True, g_is_train: False})
-                dis_loss.append(dLoss)
-                '''
-                print("     loss True: {}, loss False: {}".format(dLoss1, dLoss2))
-                dLoss = (dLoss1 + dLoss2)/2
+            print("     loss True: {}, loss False: {}".format(dl1/5, dl2/5))
+            dLoss = (dl1/5 + dl2/5)/2
 
 
             for iter in range(1):
-                #genImage = sess.run(generated_image, feed_dict={input_image: x_batch, g_is_train: False})
-                sImg, gLoss, _ = sess.run([generated_image, g_loss, trainer_g],
-                    feed_dict={input_image: x_batch, real_image: y_batch, g_is_train: True})
-                sImg = sImg * 127.5 + 127.5
-                sampleImg = sImg[0].astype('uint8')
-                imwrite(image_save_path + "/gen" + str(epoch) + ".jpeg", sampleImg)
-                dis_loss.append(dLoss)
-                gen_loss.append(gLoss)
+                _, gLoss, pLoss, mLoss, dloss = sess.run([trainer_g, g_loss, component_loss1, component_loss2, component_loss3],
+                    feed_dict={input_image: x_batch, real_image: y_batch, dis_input: result,
+                    target_result: output_true_batch, g_is_train: True})
 
-            print('    Batch: %d, d_loss: %f, g_loss: %f' % (batch+1, dLoss, gLoss))
+            dis_loss.append(dLoss)
+            gen_loss.append(gLoss)
+
+            print('    Batch: %d, d_loss: %f, g_loss: %f, pLoss: %f, MSE: %f, dloss: %f' % (batch+1, dLoss, gLoss, pLoss, mLoss, dloss))
 
         '''
         #save variables per 100 epoch
@@ -205,15 +143,11 @@ def train2():
             if not os.path.exists(image_save_path):
                 os.makedirs(image_save_path)
 
-            sample_result = sess.run(generated_sample, feed_dict={input_image: sample})
+            sample_result = sess.run(generated_image, feed_dict={input_image: sample, g_is_train: True})
             sample_result = sample_result * 127.5 + 127.5
             sampleImg = sample_result[0].astype('uint8')
             imwrite(image_save_path + "/" + str(epoch) + ".jpeg", sampleImg)
 
-            #sampleImg = Image.fromarray(sample_result)
-            #im.save(image_save_path + "/" + str(epoch) + ".jpeg")
-            #file = tf.write_file(image_save_path + "/" + str(epoch) + ".jpeg", sample_result.astype('uint8'))
-            #sess.run(file)
             print("    Sample image saved!")
             print ('    Time taken for epoch {} is {} sec'.format(epoch + 1, time.time()-start))
 
@@ -275,13 +209,14 @@ def load_images():
     imgArray = (imgArray - 127.5) / 127.5
     S_images2.append(imgArray)
 
-
+    print("Sample saved!")
     return{
         'A': np.array(A_images),
         'B': np.array(B_images),
         'Sample': np.array(S_images),
         'Sample2': np.array(S_images2)
     }
+
 
 if __name__ == '__main__':
     train2()
