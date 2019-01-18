@@ -1,11 +1,11 @@
 import os
 import tensorflow as tf
 import numpy as np
-import scipy.misc
 
 IMAGE_HIGHT = 400
 IMAGE_WIDTH = 540
 CHANNEL = 3
+# KI = tf.glorot_uniform_initializer()
 
 def generator(input, is_train, reuse = False):
     with tf.variable_scope("gen", reuse = reuse):
