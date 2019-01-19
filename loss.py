@@ -17,22 +17,6 @@ def l1_loss(yTar, yRes):
 def MSE(yTar, yRes):
     return tf.losses.mean_squared_error(yTar*127.5+127.5, yRes*127.5+127.5)
 
-'''
-def perceptual_loss(yTar, yRes):
-    vgg = VGG16(include_top=False, weights='imagenet', input_shape=IMAGE_SHAPE)
-    loss_model = Model(inputs=vgg.input, outputs=vgg.get_layer('block3_conv3').output)
-    loss_model.trainable = False
-    #return tf.reduce_mean(tf.square(loss_model(yTar) - loss_model(yRes)))
-    #return tf.metrics.mean(tf.square(loss_model(yTar) - loss_model(yRes)))
-    return tf.keras.backend.mean(tf.square(loss_model(yTar) - loss_model(yRes)))
-
-def wasserstein_loss(yTar, yRes):
-    #return tf.reduce_mean(tf.multiply(yTar, yRes))
-    #return tf.abs(tf.reduce_mean(tf.multiply(yTar, yRes)))
-    #return tf.metrics.mean(tf.multiply(yTar, yRes))
-    return tf.keras.backend.mean(tf.multiply(yTar, yRes))
-'''
-
 def perceptual_loss(y_true, y_pred):
     vgg = VGG16(include_top=False, weights='imagenet', input_shape=IMAGE_SHAPE)
     loss_model = Model(
