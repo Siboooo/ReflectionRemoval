@@ -57,14 +57,14 @@ def generator(input, is_train, reuse = False):
         conv = tf.layers.conv2d_transpose(act, 128, kernel_size=[3, 3], padding="same", strides=[2, 2])
         bn = tf.layers.batch_normalization(conv, training=is_train)
         act = tf.nn.relu(bn)
-        #act = (act + res2)/2
+        act = (act + res2)/2
         #print(act.shape)
 
         # Block 14
         conv = tf.layers.conv2d_transpose(act, 64, kernel_size=[3, 3], padding="same", strides=[2, 2])
         bn = tf.layers.batch_normalization(conv, training=is_train)
         act = tf.nn.relu(bn)
-        #act = (act + res1)/2
+        act = (act + res1)/2
         #print(act.shape)
 
         # Block 15
