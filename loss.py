@@ -23,7 +23,8 @@ def perceptual_loss(y_true, y_pred):
         inputs=vgg.input, outputs=vgg.get_layer('block3_conv3').output)
     loss_model.trainable = False
     #print("pLoss: "+str(K.mean(K.square(loss_model(y_true) - loss_model(y_pred))))+" ")
-    return K.mean(K.square(loss_model(y_true*127.5+127.5) - loss_model(y_pred*127.5+127.5)))
+    return tf.losses.mean_squared_error(loss_model(y_true*127.5+127.5), loss_model(y_pred*127.5+127.5))
+    #return K.mean(K.square(loss_model(y_true*127.5+127.5) - loss_model(y_pred*127.5+127.5)))
 
 
 def wasserstein_loss(y_true, y_pred):
