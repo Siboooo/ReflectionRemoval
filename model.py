@@ -34,6 +34,7 @@ def generator(input, is_train, reuse = False):
         conv = tf.layers.conv2d(act, 256, kernel_size=[3, 3], padding="same", strides=[2, 2])
         bn = tf.layers.batch_normalization(conv, training=is_train)
         act = tf.nn.relu(bn)
+        res3 = act
         #print("block3: "+str(act.shape))
 
         # 9 Res Blocks
@@ -45,13 +46,16 @@ def generator(input, is_train, reuse = False):
             act = tf.nn.relu(bn)
             #print("blockMid1: "+str(act.shape))
             dropout = tf.layers.dropout(act, training=is_train)
-            #p = tf.pad(dropout, ([0, 0], [1, 1], [1, 1], [0, 0]), "reflect")
-            conv = tf.layers.conv2d(dropout, 256, kernel_size=[3, 3], padding="valid", strides=[1, 1])
+            p = tf.pad(dropout, ([0, 0], [1, 1], [1, 1], [0, 0]), "reflect")
+            conv = tf.layers.conv2d(p, 256, kernel_size=[3, 3], padding="valid", strides=[1, 1])
             #bn = tf.layers.batch_normalization(conv, training=is_train)
             bn = tf.nn.relu(conv)
             #print("blockMid2: "+str(bn.shape))
-            act = tf.add(temp_x, bn)
+            #act = tf.add(temp_x, bn)
+            act = bn
             #print("block4-12: "+str(act.shape))
+
+        act = (act + res3)/2
 
         # Block 13
         conv = tf.layers.conv2d_transpose(act, 128, kernel_size=[3, 3], padding="same", strides=[2, 2])
@@ -64,7 +68,7 @@ def generator(input, is_train, reuse = False):
         conv = tf.layers.conv2d_transpose(act, 64, kernel_size=[3, 3], padding="same", strides=[2, 2])
         bn = tf.layers.batch_normalization(conv, training=is_train)
         act = tf.nn.relu(bn)
-        act = (act + res1)/2
+        #act = (act + res1)/2
         #print(act.shape)
 
         # Block 15
