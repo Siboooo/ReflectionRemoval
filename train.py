@@ -129,15 +129,6 @@ def train2():
 
             print('    Batch: %d, d_loss: %f, g_loss: %f, pLoss: %f, MSE: %f, dloss: %f' % (batch+1, dLoss, gLoss, pLoss, mLoss, dloss))
 
-        '''
-        #save variables per 100 epoch
-        if epoch%100 == 0:
-            if not os.path.exists("./vars"):
-                os.makedirs("./vars")
-            save_path = saver.save(sess, "./vars/"+version+".ckpt")
-            print("Variables saved in path: %s" % save_path)
-        '''
-
         #save result per 50 epoch
         if epoch%1 == 0:
             if not os.path.exists(image_save_path):
