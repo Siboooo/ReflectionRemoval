@@ -18,8 +18,22 @@ def generator(input, is_train, reuse = False):
         conv = tf.layers.conv2d(p, 64, kernel_size=[7, 7], padding="valid", strides=[1, 1])
         bn = tf.layers.batch_normalization(conv, training=is_train)
         act = tf.nn.relu(bn)
-        res1 = act
         #print("block1: "+str(act.shape))
+
+        # Block 1
+        p = tf.pad(act, ([0,0], [3, 3], [3, 3], [0,0]), "reflect")
+        #print(p.shape)
+        conv = tf.layers.conv2d(p, 64, kernel_size=[7, 7], padding="valid", strides=[1, 1])
+        bn = tf.layers.batch_normalization(conv, training=is_train)
+        act = tf.nn.relu(bn)
+        res1 = act
+
+        # Block 2
+        # kernel_size=[7, 7] in dissertation
+        conv = tf.layers.conv2d(act, 128, kernel_size=[3, 3], padding="same", strides=[2, 2])
+        bn = tf.layers.batch_normalization(conv, training=is_train)
+        act = tf.nn.relu(bn)
+        #print("block2: "+str(act.shape))
 
         # Block 2
         # kernel_size=[7, 7] in dissertation
@@ -27,7 +41,13 @@ def generator(input, is_train, reuse = False):
         bn = tf.layers.batch_normalization(conv, training=is_train)
         act = tf.nn.relu(bn)
         res2 = act
-        #print("block2: "+str(act.shape))
+
+        # Block 3
+        # filters = 128, kernel_size=[7, 7] in dissertation
+        conv = tf.layers.conv2d(act, 256, kernel_size=[3, 3], padding="same", strides=[2, 2])
+        bn = tf.layers.batch_normalization(conv, training=is_train)
+        act = tf.nn.relu(bn)
+        #print("block3: "+str(act.shape))
 
         # Block 3
         # filters = 128, kernel_size=[7, 7] in dissertation
@@ -35,7 +55,6 @@ def generator(input, is_train, reuse = False):
         bn = tf.layers.batch_normalization(conv, training=is_train)
         act = tf.nn.relu(bn)
         res3 = act
-        #print("block3: "+str(act.shape))
 
         # 9 Res Blocks
         # kernel_size=[7, 7] in dissertation
@@ -64,12 +83,23 @@ def generator(input, is_train, reuse = False):
         act = (act + res2)/2
         #print(act.shape)
 
+        # Block 13
+        conv = tf.layers.conv2d_transpose(act, 128, kernel_size=[3, 3], padding="same", strides=[2, 2])
+        bn = tf.layers.batch_normalization(conv, training=is_train)
+        act = tf.nn.relu(bn)
+
         # Block 14
         conv = tf.layers.conv2d_transpose(act, 64, kernel_size=[3, 3], padding="same", strides=[2, 2])
         bn = tf.layers.batch_normalization(conv, training=is_train)
         act = tf.nn.relu(bn)
         #act = (act + res1)/2
         #print(act.shape)
+
+        # Block 14
+        conv = tf.layers.conv2d_transpose(act, 64, kernel_size=[3, 3], padding="same", strides=[2, 2])
+        bn = tf.layers.batch_normalization(conv, training=is_train)
+        act = tf.nn.relu(bn)
+        #act = (act + res1)/2
 
         # Block 15
         p = tf.pad(act, ([0, 0], [3, 3], [3, 3], [0, 0]), "reflect")
@@ -134,10 +164,8 @@ def discriminator(input, is_train, reuse = False):
         act = tf.nn.leaky_relu(bn, alpha=0.2)
 
         # Block 6
-        '''conv = tf.layers.conv2d(act, 1, kernel_size=[4, 4], padding="same", strides=[1, 1],
-                                        kernel_initializer=tf.glorot_uniform_initializer())
-        '''
-        f = tf.layers.flatten(act)
+        conv = tf.layers.conv2d(act, 1, kernel_size=[1, 1], padding="same", strides=[1, 1])
+        f = tf.layers.flatten(conv)
 
         # Block 7
         d = tf.layers.dense(f, 1024)
@@ -155,41 +183,36 @@ def discriminator2(input, is_train, reuse=False):
         #input = tf.reshape(input, shape=[-1, IMAGE_HIGHT, IMAGE_WIDTH, CHANNEL])
 
         # Block 1
-        conv = tf.layers.conv2d(input, 64, kernel_size=[4, 4], padding="same", strides=[2, 2],
-                                        kernel_initializer=tf.glorot_uniform_initializer())
+        conv = tf.layers.conv2d(input, 64, kernel_size=[3, 3], padding="same", strides=[1, 1])
         act = tf.nn.leaky_relu(conv, alpha=0.2)
 
         # Block 2
-        conv = tf.layers.conv2d(act, 64, kernel_size=[4, 4], padding="same", strides=[2, 2],
-                                        kernel_initializer=tf.glorot_uniform_initializer())
+        conv = tf.layers.conv2d(act, 64, kernel_size=[3, 3], padding="same", strides=[2, 2])
         bn = tf.layers.batch_normalization(conv, training=is_train)
         act = tf.nn.leaky_relu(bn, alpha=0.2)
 
         # Block 3
-        conv = tf.layers.conv2d(act, 128, kernel_size=[4, 4], padding="same", strides=[2, 2],
-                                        kernel_initializer=tf.glorot_uniform_initializer())
+        conv = tf.layers.conv2d(act, 128, kernel_size=[3, 3], padding="same", strides=[1, 1])
         bn = tf.layers.batch_normalization(conv, training=is_train)
         act = tf.nn.leaky_relu(bn, alpha=0.2)
 
         # Block 4
-        conv = tf.layers.conv2d(act, 256, kernel_size=[4, 4], padding="same", strides=[2, 2],
-                                        kernel_initializer=tf.glorot_uniform_initializer())
+        conv = tf.layers.conv2d(act, 256, kernel_size=[3, 3], padding="same", strides=[1, 1])
         bn = tf.layers.batch_normalization(conv, training=is_train)
         act = tf.nn.leaky_relu(bn, alpha=0.2)
 
         # Block 5
-        conv = tf.layers.conv2d(act, 512, kernel_size=[4, 4], padding="same", strides=[1, 1],
-                                        kernel_initializer=tf.glorot_uniform_initializer())
+        conv = tf.layers.conv2d(act, 512, kernel_size=[3, 3], padding="same", strides=[1, 1])
         bn = tf.layers.batch_normalization(conv, training=is_train)
         act = tf.nn.leaky_relu(bn, alpha=0.2)
 
         # Block 6
-        conv = tf.layers.conv2d(act, 1, kernel_size=[4, 4], padding="same", strides=[1, 1],
-                                        kernel_initializer=tf.glorot_uniform_initializer())
+        conv = tf.layers.conv2d(act, 1, kernel_size=[3, 3], padding="same", strides=[1, 1])
         f = tf.layers.flatten(conv)
 
         # Block 7
-        d = tf.layers.dense(f, 1024, activation='tanh', kernel_initializer=tf.glorot_uniform_initializer())
-        output = tf.layers.dense(d, 1, activation='sigmoid', kernel_initializer=tf.glorot_uniform_initializer())
+        d = tf.layers.dense(f, 1024)
+        act = tf.nn.leaky_relu(d, alpha=0.2)
+        output = tf.layers.dense(act, 1, activation='sigmoid')
 
     return output
