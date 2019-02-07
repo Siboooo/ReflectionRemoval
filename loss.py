@@ -27,10 +27,6 @@ def perceptual_loss(y_true, y_pred):
     #return K.mean(K.square(loss_model(y_true*127.5+127.5) - loss_model(y_pred*127.5+127.5)))
 
 
-def wasserstein_loss(y_true, y_pred):
-    #print("wLoss: "+K.mean(y_true * y_pred)+" ")
-    return tf.abs(tf.reduce_mean(y_true - y_pred))
-
 def discriminator_loss(real_output, generated_output):
     real_loss = tf.losses.sigmoid_cross_entropy(multi_class_labels=tf.ones_like(real_output), logits=real_output)
     generated_loss = tf.losses.sigmoid_cross_entropy(multi_class_labels=tf.zeros_like(generated_output), logits=generated_output)
