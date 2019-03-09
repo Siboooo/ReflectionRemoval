@@ -114,6 +114,32 @@ def generator (input, is_train, reuse = False):
     return mask_list, out1, out2, result
 
 
+def discriminator(input, is_train, reuse = False):
+    with tf.variable_scope("dis", reuse = reuse):
+        conv = tf.layers.conv2d(input, 8, kernel_size=[5, 5], padding="same", strides=[1, 1])
+        act = tf.nn.relu(conv)
+        conv = tf.layers.conv2d(act, 16, kernel_size=[5, 5], padding="same", strides=[1, 1])
+        act = tf.nn.relu(conv)
+        conv = tf.layers.conv2d(act, 64, kernel_size=[5, 5], padding="same", strides=[1, 1])
+        act = tf.nn.relu(conv)
+        conv = tf.layers.conv2d(act, 128, kernel_size=[5, 5], padding="same", strides=[1, 1])
+        act = tf.nn.relu(conv)
+        conv = tf.layers.conv2d(act, 128, kernel_size=[5, 5], padding="same", strides=[1, 1])
+        act = tf.nn.relu(conv)
+        conv = tf.layers.conv2d(act, 128, kernel_size=[5, 5], padding="same", strides=[1, 1])
+        act = tf.nn.relu(conv)
+        mask = tf.layers.conv2d(act, 1, kernel_size=[5, 5], padding="same", strides=[1, 1])
+        x = act * mask
+        conv = tf.layers.conv2d(x, 64, kernel_size=[5, 5], padding="same", strides=[4, 4])
+        act = tf.nn.relu(conv)
+        conv = tf.layers.conv2d(act, 32, kernel_size=[5, 5], padding="same", strides=[4, 4])
+        act = tf.nn.relu(conv)
+
+        #f = tf.layers.flatten(act)
+        d = tf.layers.dense(act, 1024)
+        #act = tf.nn.leaky_relu(d, alpha=0.2)
+        result = tf.layers.dense(d, 1, activation='sigmoid')
+    return result
 
 
 def generator2(input, is_train, reuse = False):
