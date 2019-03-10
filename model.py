@@ -110,9 +110,80 @@ def generator (input, is_train, reuse = False):
         conv = tf.layers.conv2d(x, 32, kernel_size=[3, 3], padding="same", strides=[1, 1])
         act = tf.nn.relu(conv)
         result = tf.layers.conv2d(x, 3, kernel_size=[3, 3], padding="same", strides=[1, 1])
+        result = tf.nn.tanh(result)
 
     return mask_list, out1, out2, result
 
+def generatorEncoder(input, is_train, reuse = False):
+    with tf.variable_scope("gen", reuse = reuse):
+        #Block 1
+        conv = tf.layers.conv2d(input, 64, kernel_size=[9, 9], padding="same", strides=[1, 1])
+        act = tf.nn.relu(conv)
+        conv = tf.layers.conv2d(act, 64, kernel_size=[9, 9], padding="same", strides=[1, 1])
+        act = tf.nn.relu(conv)
+        conv = tf.layers.conv2d(act, 64, kernel_size=[5, 5], padding="same", strides=[1, 1])
+        act = tf.nn.relu(conv)
+        conv = tf.layers.conv2d(act, 64, kernel_size=[5, 5], padding="same", strides=[1, 1])
+        act = tf.nn.relu(conv)
+        conv = tf.layers.conv2d(act, 64, kernel_size=[5, 5], padding="same", strides=[1, 1])
+        act = tf.nn.relu(conv)
+        conv = tf.layers.conv2d(act, 64, kernel_size=[5, 5], padding="same", strides=[2, 2])
+        res1 = conv
+        act = tf.nn.relu(conv)
+
+        #Block 2
+        conv = tf.layers.conv2d(act, 64, kernel_size=[5, 5], padding="same", strides=[1, 1])
+        act = tf.nn.relu(conv)
+        conv = tf.layers.conv2d(act, 64, kernel_size=[5, 5], padding="same", strides=[2, 2])
+        res2 = conv
+        act = tf.nn.relu(conv)
+
+        #Block 3
+        conv = tf.layers.conv2d(act, 64, kernel_size=[5, 5], padding="same", strides=[1, 1])
+        act = tf.nn.relu(conv)
+        conv = tf.layers.conv2d(act, 64, kernel_size=[5, 5], padding="same", strides=[2, 2])
+        res3 = conv
+        act = tf.nn.relu(conv)
+
+        #Block 4
+        conv = tf.layers.conv2d(act, 64, kernel_size=[5, 5], padding="same", strides=[1, 1])
+        act = tf.nn.relu(conv)
+        conv = tf.layers.conv2d(act, 64, kernel_size=[5, 5], padding="same", strides=[1, 1])
+        act = tf.nn.relu(conv)
+        deconv = tf.layers.conv2d_transpose(act, 64, kernel_size=[5, 5], padding="same", strides=[1, 1])
+        act = tf.nn.relu(deconv)
+        deconv = tf.layers.conv2d_transpose(act, 64, kernel_size=[5, 5], padding="same", strides=[2, 2])
+        deconv = deconv + res3
+        act = tf.nn.relu(deconv)
+
+        #Block 5
+        deconv = tf.layers.conv2d_transpose(act, 64, kernel_size=[5, 5], padding="same", strides=[1, 1])
+        act = tf.nn.relu(deconv)
+        deconv = tf.layers.conv2d_transpose(act, 64, kernel_size=[5, 5], padding="same", strides=[2, 2])
+        deconv = deconv + res2
+        act = tf.nn.relu(deconv)
+
+        #Block 6
+        deconv = tf.layers.conv2d_transpose(act, 64, kernel_size=[5, 5], padding="same", strides=[1, 1])
+        act = tf.nn.relu(deconv)
+        deconv = tf.layers.conv2d_transpose(act, 64, kernel_size=[5, 5], padding="same", strides=[2, 2])
+        deconv = res1 - deconv
+        act = tf.nn.relu(deconv)
+
+        #Block 7
+        deconv = tf.layers.conv2d_transpose(act, 64, kernel_size=[5, 5], padding="same", strides=[1, 1])
+        act = tf.nn.relu(deconv)
+        deconv = tf.layers.conv2d_transpose(act, 64, kernel_size=[5, 5], padding="same", strides=[1, 1])
+        act = tf.nn.relu(deconv)
+        deconv = tf.layers.conv2d_transpose(act, 64, kernel_size=[5, 5], padding="same", strides=[1, 1])
+        act = tf.nn.relu(deconv)
+        deconv = tf.layers.conv2d_transpose(act, 64, kernel_size=[5, 5], padding="same", strides=[1, 1])
+        act = tf.nn.relu(deconv)
+        deconv = tf.layers.conv2d_transpose(act, 64, kernel_size=[9, 9], padding="same", strides=[1, 1])
+        act = tf.nn.relu(deconv)
+        deconv = tf.layers.conv2d_transpose(act, 3, kernel_size=[9, 9], padding="same", strides=[1, 1])
+        result = tf.nn.tanh(deconv)
+    return result
 
 def discriminator(input, is_train, reuse = False):
     with tf.variable_scope("dis", reuse = reuse):
