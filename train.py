@@ -1,18 +1,21 @@
+import pandas as pd
 import tensorflow as tf
 import numpy as np
 import os
 import time
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
+from skimage import io
 import scipy
+import shutil
 
 from model import *
 from loss import *
 from PIL import Image
-from cv2 import imwrite
+#from cv2 import imwrite
 import keras.backend as K
 
 IMAGE_HEIGHT = 400
-IMAGE_WIDTH = 540
+IMAGE_WIDTH = 400
 CHANNEL = 3
 EPOCH = 1000
 BATCH_SIZE = 4
@@ -50,16 +53,17 @@ def train2():
     g_is_train = tf.placeholder(tf.bool)
     d_is_train = tf.placeholder(tf.bool)
 
-    generated_image = generator(input_image, g_is_train)
+    mask_list, out1, out2, generated_image = generator(input_image, g_is_train)
+    _, _, _, generated_sample = generator(input_image, g_is_train, reuse = True, sample = True)
 
     dis_result = discriminator(dis_input_image, d_is_train)
 
     d_loss = singleDisLoss(target_result, dis_result)
 
     component_loss1 = perceptual_loss(real_image, generated_image)
-    component_loss2 = MSE(real_image, generated_image)
+    component_loss2 = MSE(real_image, generated_image) + MSE(real_image, out1) + MSE(real_image, out2)
     component_loss3 = singleDisLoss(target_result, dis_input)
-    g_loss = 1 * component_loss1 + 1 * component_loss2 + 1 * component_loss3
+    g_loss = 1 * component_loss1 + 0.1 * component_loss2 + 1 * component_loss3
 
     d_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope="dis")
     g_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope="gen")
@@ -72,9 +76,14 @@ def train2():
     sample = data['Sample']
     sample_result3 = sample * 127.5 + 127.5
     sampleImg3 = sample_result3[0].astype('uint8')
-    imwrite(image_save_path + "/sample1.jpeg", sampleImg3)
+    io.imsave(image_save_path + "/sample1.jpeg", sampleImg3)
     print("number of images: {}\nimages size and chaneel: {}\n".format(
         x_train.shape[0], x_train.shape[1:]))
+
+    reflection = sample - sample2
+    reflection = reflection * 127.5 + 127.5
+    io.imsave(image_save_path + "/reflectionSample.jpeg", reflection)
+    print("reflection saved")
 
     output_true_batch = np.ones((BATCH_SIZE, 1))
     output_false_batch = np.zeros((BATCH_SIZE, 1))
@@ -96,6 +105,8 @@ def train2():
         print("==>> Running epoch [{}/{}]...".format(epoch+1, EPOCH))
         start = time.time()
         permutated_indexes = np.random.permutation(x_train.shape[0])
+        disl = 0
+        genl = 0
 
         for batch in range(int(x_train.shape[0]/BATCH_SIZE)):
             batch_indexes = permutated_indexes[batch * BATCH_SIZE:(batch+1)*BATCH_SIZE]
@@ -103,52 +114,75 @@ def train2():
             y_batch = y_train[batch_indexes]
             dl1 = 0
             dl2 = 0
-            for iter in range(5):
+            iteration = 1
+            for iter in range(iteration):
+
+                _, dLoss1 = sess.run([trainer_d, d_loss],
+                    feed_dict={dis_input_image: y_batch, target_result: output_true_batch, d_is_train: True})
+                dl1 = dl1 + dLoss1
+
+
                 gen_image = sess.run(generated_image, feed_dict={input_image: x_batch, g_is_train: True})
 
                 _, dLoss2, result = sess.run([trainer_d, d_loss, dis_result],
                     feed_dict={dis_input_image: gen_image, target_result: output_false_batch, d_is_train: True})
                 dl2 = dl2 + dLoss2
 
-            for iter in range(5):
-                _, dLoss1 = sess.run([trainer_d, d_loss],
-                    feed_dict={dis_input_image: y_batch, target_result: output_true_batch, d_is_train: True})
-                dl1 = dl1 + dLoss1
-
-            print("     loss True: {}, loss False: {}".format(dl1/5, dl2/5))
-            dLoss = (dl1/5 + dl2/5)/2
+            dl1 = dl1 / iteration
+            dl2 = dl2 / iteration
+            print("    loss True: {}, loss False: {}".format(dl1, dl2))
+            #print("    result: {}".format(result))
+            dLoss = (dl1 + dl2)/2
+            disl = disl + dLoss
 
 
             for iter in range(1):
                 _, gLoss, pLoss, mLoss, dloss = sess.run([trainer_g, g_loss, component_loss1, component_loss2, component_loss3],
                     feed_dict={input_image: x_batch, real_image: y_batch, dis_input: result,
                     target_result: output_true_batch, g_is_train: True})
-
-            dis_loss.append(dLoss)
-            gen_loss.append(gLoss)
+            genl = genl + gLoss
 
             print('    Batch: %d, d_loss: %f, g_loss: %f, pLoss: %f, MSE: %f, dloss: %f' % (batch+1, dLoss, gLoss, pLoss, mLoss, dloss))
+
+        '''
+        #save variables per 100 epoch
+        if epoch%100 == 0:
+            if not os.path.exists("./vars"):
+                os.makedirs("./vars")
+            save_path = saver.save(sess, "./vars/"+version+".ckpt")
+            print("Variables saved in path: %s" % save_path)
+        '''
+
+        disl = disl / (TRAIN_IMAGES / BATCH_SIZE)
+        genl = genl / (TRAIN_IMAGES / BATCH_SIZE)
+        dis_loss.append(disl)
+        gen_loss.append(genl)
 
         #save result per 50 epoch
         if epoch%1 == 0:
             if not os.path.exists(image_save_path):
                 os.makedirs(image_save_path)
 
-            sample_result = sess.run(generated_image, feed_dict={input_image: sample, g_is_train: True})
+            sample_result = sess.run(generated_sample, feed_dict={input_image: sample, g_is_train: True})
             sample_result = sample_result * 127.5 + 127.5
             sampleImg = sample_result[0].astype('uint8')
-            imwrite(image_save_path + "/" + str(epoch) + ".jpeg", sampleImg)
+            io.imsave(image_save_path + "/" + str(epoch) + ".jpeg", sampleImg)
 
             print("    Sample image saved!")
-            print ('    Time taken for epoch {} is {} sec'.format(epoch + 1, time.time()-start))
+
+        print ('    Time taken for epoch {} is {} sec'.format(epoch + 1, time.time()-start))
 
     coord.request_stop()
     coord.join(threads)
 
 def load_images():
     current_dir = os.getcwd()
-    input_dir = os.path.join(current_dir, 'images/train/A')
-    real_dir = os.path.join(current_dir, 'images/train/B')
+    input_dir = os.path.join(current_dir, 'images/train/B')
+    real_dir = os.path.join(current_dir, 'images/train/A')
+
+    if os.path.exists("./step_result"):
+        shutil.rmtree('./step_result')
+    os.makedirs("./step_result")
 
     A_images = []
     index = 0
@@ -179,23 +213,23 @@ def load_images():
         index += 1
 
     S_images = []
-    img = Image.open("images/test/A/93.jpg")
+    img = Image.open("images/train/B/19-4.jpeg")
     resizedImg = img.resize([IMAGE_WIDTH, IMAGE_HEIGHT])
     imgArray = np.array(resizedImg)
 
     sampleImg2 = imgArray.astype('uint8')
-    imwrite(image_save_path + "/sample0.jpeg", sampleImg2)
+    io.imsave(image_save_path + "/sample0.jpeg", sampleImg2)
 
     imgArray = (imgArray - 127.5) / 127.5
     S_images.append(imgArray)
 
     S_images2 = []
-    img = Image.open("images/test/B/93.jpg")
+    img = Image.open("images/train/A/19-4.jpeg")
     resizedImg = img.resize([IMAGE_WIDTH, IMAGE_HEIGHT])
     imgArray = np.array(resizedImg)
 
     sampleImg2 = imgArray.astype('uint8')
-    imwrite(image_save_path + "/sample_result0.jpeg", sampleImg2)
+    io.imsave(image_save_path + "/sample_result0.jpeg", sampleImg2)
 
     imgArray = (imgArray - 127.5) / 127.5
     S_images2.append(imgArray)
@@ -211,4 +245,4 @@ def load_images():
 
 if __name__ == '__main__':
     train2()
-    plot()
+    #plot()
