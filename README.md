@@ -1,4 +1,4 @@
-# Single Image Reflection Remover
+# Single-Image-Reflection-Remover
 
 ## Overview
 Photographs were taken through a piece of transparent and reflective material, such as glass, often contain both the desired scene and the superimposed reflections. Reflection removal, as a computer vision task, aims at separating the mixture of the desired scene and the undesired reflections.
@@ -23,6 +23,6 @@ Sample results in $SIR^2$ dataset]{Sample results in $SIR^2$ dataset. From left:
 ![submission](https://github.com/Siboooo/imgForMD/blob/master/ReflectionRemoval/SIRSample.png?raw=true) 
 
 ## Dependencies
+* [TensorFlow](https://www.tensorflow.org)
 * [NumPy](http://www.numpy.org)
-* [SciPy](https://www.scipy.org)
-* [Pandas](http://pandas.pydata.org)
+* [Scikit-Image](https://scikit-image.org)
