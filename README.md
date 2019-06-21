@@ -14,9 +14,13 @@ Instead of using a Multi-image input, this project proposes a method which focus
 Due to the vacancy of a large set of real-world reflection image pairs, in this work, the largest real reflection image dataset was collected and used as the training dataset. The dataset includes controlled scenes taken both indoor and outdoor with a great diversity of background scenes and reflections. Each pair of training data contains a reflection-free background image and an image with reflection. The dataset can be found [here](https://www.kaggle.com/c/digit-recognizer#description). 
 
 ## Performance
-Four versions (with different learning rates, hidden unit numbers and epoch numbers) were submitted (Score up to 97.5%).
+Image quality is continually improving follow the training. The Figure shows the output result in iteration 100, 300, 500, 800 and 1000.
 
-![submission](https://raw.githubusercontent.com/Siboooo/imgForMD/master/DigitRecognizer/DR-MLP-sub.png) 
+![submission](https://github.com/Siboooo/imgForMD/blob/master/ReflectionRemoval/iterationSample.png?raw=true) 
+
+Sample results in $SIR^2$ dataset]{Sample results in $SIR^2$ dataset. From left: Desired Scene, Input image, Sample Result
+
+![submission](https://github.com/Siboooo/imgForMD/blob/master/ReflectionRemoval/SIRSample.png?raw=true) 
 
 ## Dependencies
 * [NumPy](http://www.numpy.org)
